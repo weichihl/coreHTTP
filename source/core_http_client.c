@@ -811,7 +811,7 @@ static int httpParserOnHeadersCompleteCallback( http_parser * pHttpParser )
      * request. A HEAD response will contain Content-Length, but no body. If
      * the parser is not stopped here, then it will try to keep parsing past the
      * end of the headers up to the Content-Length found. */
-    if( pParsingContext->isHeadResponse == 1U )
+    if( pParsingContext->isHeadResponse == 1U && pResponse->statusCode / 100 != 1 )
     {
         shouldContinueParse = HTTP_PARSER_STOP_PARSING;
     }
