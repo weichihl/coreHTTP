@@ -423,6 +423,21 @@ static int httpParserOnHeaderValueCallback( http_parser * pHttpParser,
 static int httpParserOnHeadersCompleteCallback( http_parser * pHttpParser );
 
 /**
+ * @brief Global variable to store HTTP max response headers size in bytes.
+ */
+static uint32_t uHttpMaxResponseHeaderSizeBytes = HTTP_MAX_RESPONSE_HEADERS_SIZE_BYTES;
+
+/**
+ * @brief Global variable to store user agent value
+ */
+static char *pHttpUserAgentValue = HTTP_USER_AGENT_VALUE;
+
+/**
+ * @brief Global variable to store the length of user agent value
+ */
+static size_t uHttpUserAgentValueLen = HTTP_USER_AGENT_VALUE_LEN;
+
+/**
  * @brief Callback invoked during http_parser_execute() when the HTTP response
  * body is found.
  *
@@ -933,7 +948,7 @@ static void initializeParsingContextForFirstResponse( HTTPParsingContext_t * pPa
     /* Initialize the third-party HTTP parser to parse responses. */
     http_parser_init( &( pParsingContext->httpParser ), HTTP_RESPONSE );
 
-    http_parser_set_max_header_size( HTTP_MAX_RESPONSE_HEADERS_SIZE_BYTES );
+    http_parser_set_max_header_size( uHttpMaxResponseHeaderSizeBytes );
 
     /* No response has been parsed yet. */
     pParsingContext->state = HTTP_PARSING_NONE;
@@ -1548,8 +1563,8 @@ HTTPStatus_t HTTPClient_InitializeRequestHeaders( HTTPRequestHeaders_t * pReques
         returnStatus = addHeader( pRequestHeaders,
                                   HTTP_USER_AGENT_FIELD,
                                   HTTP_USER_AGENT_FIELD_LEN,
-                                  HTTP_USER_AGENT_VALUE,
-                                  HTTP_USER_AGENT_VALUE_LEN );
+                                  pHttpUserAgentValue,
+                                  uHttpUserAgentValueLen );
     }
 
     if( returnStatus == HTTPSuccess )
@@ -2530,3 +2545,45 @@ const char * HTTPClient_strerror( HTTPStatus_t status )
 }
 
 /*-----------------------------------------------------------*/
+
+HTTPStatus_t HTTPClient_setMaxResponseHeaderSizeBytes( uint32_t uSize )
+{
+    HTTPStatus_t returnStatus = HTTPSuccess;
+
+    if ( uSize <= 2 )
+    {
+        LogError( ( "Parameter check failed: uSize is too small." ) );
+        returnStatus = HTTPInvalidParameter;
+    }
+    else
+    {
+        uHttpMaxResponseHeaderSizeBytes = uSize;
+    }
+
+    return returnStatus;
+}
+
+/*-----------------------------------------------------------*/
+
+HTTPStatus_t HTTPClient_setUserAgent( char *pUserAgentValue, size_t uUserAgentValueLen )
+{
+    HTTPStatus_t returnStatus = HTTPSuccess;
+
+    if( pUserAgentValue == NULL )
+    {
+        LogError( ( "Parameter check failed: pUserAgentValue is NULL." ) );
+        returnStatus = HTTPInvalidParameter;
+    }
+    else if( uUserAgentValueLen == 0 )
+    {
+        LogError( ( "Parameter check failed: uUserAgentValueLen is zero." ) );
+        returnStatus = HTTPInvalidParameter;
+    }
+    else
+    {
+        pHttpUserAgentValue = pUserAgentValue;
+        uHttpUserAgentValueLen = uUserAgentValueLen;
+    }
+
+    return returnStatus;
+}
