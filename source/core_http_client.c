@@ -2587,3 +2587,71 @@ HTTPStatus_t HTTPClient_setUserAgent( char *pUserAgentValue, size_t uUserAgentVa
 
     return returnStatus;
 }
+
+HTTPStatus_t HTTPClient_receiveAndParseHttpResponse( const TransportInterface_t * pTransport,
+                                                     HTTPResponse_t * pResponse,
+                                                     uint8_t isHeadResponse)
+{
+    HTTPStatus_t returnStatus = HTTPSuccess;
+    size_t totalReceived = 0U;
+    size_t currentReceived = 0U;
+    HTTPParsingContext_t parsingContext = { 0 };
+    uint8_t shouldRecv = 1U;
+
+    assert( pTransport != NULL );
+    assert( pTransport->recv != NULL );
+    assert( pResponse != NULL );
+
+    /* Initialize the parsing context for parsing the response received from the
+     * network. */
+    initializeParsingContextForFirstResponse( &parsingContext );
+
+    while( shouldRecv == 1U )
+    {
+        /* Receive the HTTP response data into the pResponse->pBuffer. */
+        returnStatus = receiveHttpData( pTransport,
+                                        pResponse->pBuffer + totalReceived,
+                                        pResponse->bufferLen - totalReceived,
+                                        &currentReceived );
+
+        if( returnStatus == HTTPSuccess )
+        {
+            /* Data is received into the buffer and must be parsed. Parsing is
+             * invoked even with a length of zero. A length of zero indicates to
+             * the parser that there is no more data from the server (EOF). */
+            returnStatus = parseHttpResponse( &parsingContext,
+                                              pResponse,
+                                              currentReceived,
+                                              isHeadResponse );
+            totalReceived += currentReceived;
+        }
+
+        /* Reading should continue if there are no errors in the transport recv
+         * or parsing, non-zero data was received from the network,
+         * the parser indicated the response message is not finished, and there
+         * is room in the response buffer. */
+        shouldRecv = ( ( returnStatus == HTTPSuccess ) &&
+                       ( currentReceived > 0U ) &&
+                       ( parsingContext.state != HTTP_PARSING_COMPLETE ) &&
+                       ( totalReceived < pResponse->bufferLen ) ) ? 1U : 0U;
+        if ( shouldRecv == 0U )
+        {
+            if ( pResponse->statusCode / 100 == 1U )
+            {
+                shouldRecv = 1U;
+            }
+        }
+    }
+
+    if( returnStatus == HTTPSuccess )
+    {
+        /* If there are errors in receiving from the network or during parsing,
+         * the final status of the response message is derived from the state of
+         * the parsing and how much data is in the buffer. */
+        returnStatus = getFinalResponseStatus( parsingContext.state,
+                                               totalReceived,
+                                               pResponse->bufferLen );
+    }
+
+    return returnStatus;
+}

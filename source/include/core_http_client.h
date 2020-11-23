@@ -882,6 +882,25 @@ HTTPStatus_t HTTPClient_setMaxResponseHeaderSizeBytes( uint32_t uSize );
  * - #HTTPSuccess (If successful.)
  * - #HTTPInvalidParameter (If any provided parameters or their members are invalid.)
  */
-HTTPStatus_t HTTPClient_setUserAgent( char *pUserAgentValue, size_t uUserAgentValueLen );
+HTTPStatus_t HTTPClient_setUserAgent( char *pUserAgentValue,
+                                      size_t uUserAgentValueLen );
+
+/**
+ * @brief Receive and parse response
+ *
+ * @param[in] pTransport Transport interface, see #TransportInterface_t for
+ * more information.
+ *
+ * @param[in] pResponse The buffer containing the completed HTTP response.
+ *
+ * @param[in] isHeadResponse Set 1 if this is the response of HTTP "HEAD" request
+ *
+ * @return One of the following:
+ * - #HTTPSuccess (If successful.)
+ * - #HTTPInvalidParameter (If any provided parameters or their members are invalid.)
+ */
+HTTPStatus_t HTTPClient_receiveAndParseHttpResponse( const TransportInterface_t * pTransport,
+                                                     HTTPResponse_t * pResponse,
+                                                     uint8_t isHeadResponse);
 
 #endif /* ifndef CORE_HTTP_CLIENT_H_ */
